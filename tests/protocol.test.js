@@ -1,0 +1,5 @@
+'use strict';const test=require('node:test');const assert=require('node:assert/strict');const {spawn}=require('node:child_process');const path=require('node:path');const {AppServer}=require('../client/src/protocol');
+function server(t){const s=new AppServer('unused',{spawn:(_bin,_args,options)=>spawn(process.execPath,[path.join(__dirname,'fake-server.js')],options)});t.after(()=>s.dispose());return s;}
+test('JSONL handshake and request correlation',async t=>{const s=server(t);await s.start();const values=await Promise.all([s.request('echo',{a:1}),s.request('echo',{b:2})]);assert.deepEqual(values,[{a:1},{b:2}]);await assert.rejects(s.request('fail'),/expected error/);});
+test('server initiated tool requests preserve IDs and arguments',async t=>{const s=server(t);await s.start();const incoming=new Promise(resolve=>s.once('request',resolve));await s.request('trigger');const m=await incoming;assert.equal(m.id,44);assert.equal(m.params.arguments.path,'.');s.respond(m.id,{success:true,contentItems:[]});});
+test('pending calls reject if app-server exits',async t=>{const s=server(t);await s.start();await assert.rejects(s.request('exit'),/退出/);});

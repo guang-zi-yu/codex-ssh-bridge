@@ -1,0 +1,3 @@
+'use strict';const test=require('node:test');const assert=require('node:assert/strict');const {normalizeModels,chooseModel}=require('../client/src/models');
+test('uses available server default instead of invalid local config',()=>{const models=normalizeModels([{id:'good',model:'supported',displayName:'Available',isDefault:true},{id:'other'}]);assert.equal(chooseModel('',models),'supported');assert.equal(chooseModel('other',models),'other');assert.throws(()=>chooseModel('unavailable',models),/可用列表/);});
+test('falls back to first available model and never invents names',()=>{assert.equal(chooseModel('',normalizeModels([{id:'available'}])),'available');assert.equal(chooseModel('',[]),null);});

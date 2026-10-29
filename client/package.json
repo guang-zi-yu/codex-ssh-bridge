@@ -1,0 +1,90 @@
+{
+  "version": "0.1.0",
+  "publisher": "local-tools",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "license": "MIT",
+  "main": "./src/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Remote writes and commands require a trusted workspace."
+    },
+    "virtualWorkspaces": false
+  },
+  "name": "codex-ssh-bridge",
+  "displayName": "Codex SSH Bridge",
+  "description": "Use local Codex authentication and networking to work in a Remote-SSH workspace.",
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onView:codexSSH.chat",
+    "onUri"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codexSSH",
+          "title": "Codex SSH",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "codexSSH": [
+        {
+          "type": "webview",
+          "id": "codexSSH.chat",
+          "name": "Codex SSH Bridge"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "codexSSH.open",
+        "title": "Codex SSH: 打开面板"
+      },
+      {
+        "command": "codexSSH.connect",
+        "title": "Codex SSH: 连接"
+      },
+      {
+        "command": "codexSSH.login",
+        "title": "Codex SSH: 本地登录"
+      },
+      {
+        "command": "codexSSH.newChat",
+        "title": "Codex SSH: 新对话"
+      },
+      {
+        "command": "codexSSH.installRemote",
+        "title": "Codex SSH: 安装远程助手"
+      },
+      {
+        "command": "codexSSH.logs",
+        "title": "Codex SSH: 显示日志"
+      },
+      {
+        "command": "codexSSH.diagnose",
+        "title": "Codex SSH: 诊断连接（远程临时目录）"
+      }
+    ],
+    "configuration": {
+      "title": "Codex SSH Bridge",
+      "properties": {
+        "codexSSH.codexPath": {
+          "type": "string",
+          "default": "codex",
+          "scope": "machine",
+          "description": "Path to the LOCAL Codex executable. This runs on the client computer, not the SSH host."
+        }
+      }
+    }
+  }
+}
