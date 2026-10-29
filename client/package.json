@@ -73,6 +73,14 @@
       {
         "command": "codexSSH.diagnose",
         "title": "Codex SSH: 诊断连接（远程临时目录）"
+      },
+      {
+        "command": "codexSSH.history",
+        "title": "Codex SSH: 历史对话"
+      },
+      {
+        "command": "codexSSH.openProject",
+        "title": "Codex SSH: 在 Codex 中打开项目"
       }
     ],
     "configuration": {
