@@ -2,9 +2,9 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs/promises');const path=require('node:path');const os=require('node:os');const Module=require('node:module');const core=require('../worker/src/core');
 test('workspace bridge refuses local/untrusted/outside operations and requires write approval',async t=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'bridge-worker-test-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));await fs.writeFile(path.join(root,'a'),'before');
- const handlers=new Map();let allow=false;let dirty=false;
+ const handlers=new Map();let allow=false;let dirty=false;let prompts=0;
  const uri=p=>({scheme:'vscode-remote',fsPath:p,toString:()=>p});
- const fake={env:{remoteName:'ssh-remote'},workspace:{isTrusted:true,workspaceFolders:[{name:'test',uri:uri(root)}],get textDocuments(){return dirty?[{uri:uri(path.join(root,'a')),isDirty:true}]:[];},registerTextDocumentContentProvider:()=>({dispose(){}})},commands:{registerCommand:(name,fn)=>{handlers.set(name,fn);return {dispose(){}};},executeCommand:async()=>{}},window:{showWarningMessage:async()=>allow?'应用本次修改':undefined},Uri:{parse:s=>({toString:()=>s})}};
+ const fake={env:{remoteName:'ssh-remote'},workspace:{isTrusted:true,workspaceFolders:[{name:'test',uri:uri(root)}],get textDocuments(){return dirty?[{uri:uri(path.join(root,'a')),isDirty:true}]:[];},registerTextDocumentContentProvider:()=>({dispose(){}})},commands:{registerCommand:(name,fn)=>{handlers.set(name,fn);return {dispose(){}};},executeCommand:async()=>{}},window:{showWarningMessage:async()=>{prompts++;return allow?'应用本次修改':undefined;}},Uri:{parse:s=>({toString:()=>s})}};
  const original=Module._load;Module._load=function(id,...args){if(id==='vscode')return fake;return original.call(this,id,...args);};
  let extension;try{delete require.cache[require.resolve('../worker/src/extension')];extension=require('../worker/src/extension');}finally{Module._load=original;}
  const subscriptions=[];extension.activate({subscriptions,extension:{packageJSON:{version:'0.1.0'}}});t.after(()=>subscriptions.forEach(x=>x.dispose?.()));
@@ -17,6 +17,16 @@ test('workspace bridge refuses local/untrusted/outside operations and requires w
  await assert.rejects(invoke(edit),/declined/);assert.equal(await fs.readFile(path.join(root,'a'),'utf8'),'before');
  allow=true;dirty=true;await assert.rejects(invoke(edit),/unsaved/);dirty=false;
  await invoke(edit);assert.equal(await fs.readFile(path.join(root,'a'),'utf8'),'after');
+ const current=await invoke(request);const guarded={...edit,args:{...edit.args,expected_sha256:current.sha256,old_text:'after',new_text:'automatic'}};
+ const beforePrompts=prompts;
+ await assert.rejects(invoke({...guarded,permission:'read-only'}),/只读/);
+ await assert.rejects(invoke({...request,action:'exec',permission:'read-only',args:{command:'echo blocked'}}),/只读/);
+ await assert.rejects(invoke({...guarded,permission:'invented'}),/Invalid remote permission/);
+ assert.equal(await fs.readFile(path.join(root,'a'),'utf8'),'after');
+ allow=false;await invoke({...guarded,permission:'full'});assert.equal(prompts,beforePrompts);assert.equal(await fs.readFile(path.join(root,'a'),'utf8'),'automatic');
+ dirty=true;await assert.rejects(invoke({...guarded,permission:'full'}),/unsaved/);dirty=false;
+ await assert.rejects(invoke({...guarded,permission:'full'}),/changed|hash|conflict/i);
+ const execution=await invoke({...request,action:'exec',permission:'full',args:{command:"printf 'full-access-ok'"}});assert.equal(execution.stdout,'full-access-ok');assert.equal(prompts,beforePrompts);
  await invoke({action:'cancel',jobId:'test'});await assert.rejects(invoke(request),/cancelled/);
  const report=await handlers.get('codexSSH.remote.selfTest')();assert.equal(report.ok,true);assert.equal(report.exec,true);
 });
