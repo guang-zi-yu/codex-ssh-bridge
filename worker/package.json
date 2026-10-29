@@ -1,0 +1,53 @@
+{
+  "version": "0.1.0",
+  "publisher": "local-tools",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "license": "MIT",
+  "main": "./src/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Remote writes and commands require a trusted workspace."
+    },
+    "virtualWorkspaces": false
+  },
+  "name": "codex-ssh-bridge-remote",
+  "displayName": "Codex SSH Bridge Remote",
+  "description": "Remote workspace file and command operations for Codex SSH Bridge. No Codex installation or model access required on the SSH host.",
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onCommand:codexSSH.remote.invoke",
+    "onCommand:codexSSH.remote.selfTest"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "codexSSH.remote.invoke",
+        "title": "Codex SSH Remote: Internal bridge"
+      },
+      {
+        "command": "codexSSH.remote.selfTest",
+        "title": "Codex SSH Remote: Internal diagnostics"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "codexSSH.remote.invoke",
+          "when": "false"
+        },
+        {
+          "command": "codexSSH.remote.selfTest",
+          "when": "false"
+        }
+      ]
+    }
+  }
+}

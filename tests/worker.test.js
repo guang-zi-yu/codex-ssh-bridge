@@ -1,0 +1,22 @@
+'use strict';
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs/promises');const path=require('node:path');const os=require('node:os');const Module=require('node:module');const core=require('../worker/src/core');
+test('workspace bridge refuses local/untrusted/outside operations and requires write approval',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'bridge-worker-test-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));await fs.writeFile(path.join(root,'a'),'before');
+ const handlers=new Map();let allow=false;let dirty=false;
+ const uri=p=>({scheme:'vscode-remote',fsPath:p,toString:()=>p});
+ const fake={env:{remoteName:'ssh-remote'},workspace:{isTrusted:true,workspaceFolders:[{name:'test',uri:uri(root)}],get textDocuments(){return dirty?[{uri:uri(path.join(root,'a')),isDirty:true}]:[];},registerTextDocumentContentProvider:()=>({dispose(){}})},commands:{registerCommand:(name,fn)=>{handlers.set(name,fn);return {dispose(){}};},executeCommand:async()=>{}},window:{showWarningMessage:async()=>allow?'应用本次修改':undefined},Uri:{parse:s=>({toString:()=>s})}};
+ const original=Module._load;Module._load=function(id,...args){if(id==='vscode')return fake;return original.call(this,id,...args);};
+ let extension;try{delete require.cache[require.resolve('../worker/src/extension')];extension=require('../worker/src/extension');}finally{Module._load=original;}
+ const subscriptions=[];extension.activate({subscriptions,extension:{packageJSON:{version:'0.1.0'}}});t.after(()=>subscriptions.forEach(x=>x.dispose?.()));
+ const invoke=handlers.get('codexSSH.remote.invoke');const request={root,jobId:'test',action:'read',args:{path:'a'}};
+ assert.equal((await invoke({action:'hello'})).roots[0].path,root);
+ fake.env.remoteName=undefined;await assert.rejects(invoke(request),/Remote helper/);fake.env.remoteName='ssh-remote';
+ fake.workspace.isTrusted=false;await assert.rejects(invoke(request),/Trust/);fake.workspace.isTrusted=true;
+ await assert.rejects(invoke({...request,root:'/'}),/not an open/);
+ const r=await invoke(request);const edit={...request,action:'edit',args:{path:'a',expected_sha256:r.sha256,old_text:'before',new_text:'after'}};
+ await assert.rejects(invoke(edit),/declined/);assert.equal(await fs.readFile(path.join(root,'a'),'utf8'),'before');
+ allow=true;dirty=true;await assert.rejects(invoke(edit),/unsaved/);dirty=false;
+ await invoke(edit);assert.equal(await fs.readFile(path.join(root,'a'),'utf8'),'after');
+ await invoke({action:'cancel',jobId:'test'});await assert.rejects(invoke(request),/cancelled/);
+ const report=await handlers.get('codexSSH.remote.selfTest')();assert.equal(report.ok,true);assert.equal(report.exec,true);
+});
