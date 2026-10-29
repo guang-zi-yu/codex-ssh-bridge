@@ -2,6 +2,7 @@
 const {EventEmitter}=require('node:events');
 const {spawn}=require('node:child_process');
 const readline=require('node:readline');
+const {version}=require('../package.json');
 class AppServer extends EventEmitter{
  constructor(executable,options={}){super();this.executable=executable;this.options=options;this.pending=new Map();this.sequence=0;this.child=null;this.ready=false;}
  async start(){
@@ -19,7 +20,7 @@ class AppServer extends EventEmitter{
   this.child.on('exit',(code,signal)=>this.fail(new Error(`本地 Codex 已退出 (${code??signal})`)));
   const lines=readline.createInterface({input:this.child.stdout});
   lines.on('line',line=>{try{this.receive(JSON.parse(line));}catch(e){this.emit('log','Ignored non-JSON app-server output');}});
-  await this.request('initialize',{clientInfo:{name:'codex_ssh_bridge',title:'Codex SSH Bridge',version:'0.1.0'},capabilities:{experimentalApi:true}});
+  await this.request('initialize',{clientInfo:{name:'codex_ssh_bridge',title:'Codex SSH Bridge',version},capabilities:{experimentalApi:true}});
   this.notify('initialized',{});this.ready=true;
  }
  receive(msg){

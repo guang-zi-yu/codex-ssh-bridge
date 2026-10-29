@@ -27,11 +27,18 @@ def build(folder):
 <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true"/>
 <Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE" Addressable="true"/></Assets></PackageManifest>'''
     types = '''<?xml version="1.0" encoding="utf-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="json" ContentType="application/json"/><Default Extension="js" ContentType="application/javascript"/><Default Extension="css" ContentType="text/css"/><Default Extension="svg" ContentType="image/svg+xml"/><Default Extension="md" ContentType="text/markdown"/><Default Extension="vsix" ContentType="application/octet-stream"/><Default Extension="vsixmanifest" ContentType="text/xml"/><Default Extension="" ContentType="text/plain"/></Types>'''
+    worker = json.loads((ROOT / 'worker' / 'package.json').read_text())
+    expected_helper = f"{worker['name']}-{worker['version']}.vsix"
+    if folder == 'client' and not (source / 'bundled' / expected_helper).is_file():
+        raise RuntimeError('Build the matching remote helper before the client')
     with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as z:
         z.writestr('extension.vsixmanifest', manifest)
         z.writestr('[Content_Types].xml', types)
         for f in sorted(source.rglob('*')):
-            if f.is_file(): z.write(f, 'extension/' + f.relative_to(source).as_posix())
+            relative = f.relative_to(source)
+            if folder == 'client' and relative.parts[0] == 'bundled' and relative.as_posix() != 'bundled/' + expected_helper:
+                continue
+            if f.is_file(): z.write(f, 'extension/' + relative.as_posix())
     print(target)
     return target
 
