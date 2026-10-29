@@ -1,0 +1,45 @@
+{
+  "time": "2026-10-29T09:06:30.287Z",
+  "clientPlatform": "darwin",
+  "remoteName": "ssh-remote",
+  "remote": {
+    "hostname": "ubuntu",
+    "arch": "arm64",
+    "version": "0.1.0",
+    "rootCount": 1
+  },
+  "remoteTest": {
+    "ok": true,
+    "hostname": "ubuntu",
+    "arch": "arm64",
+    "remoteName": "ssh-remote",
+    "create": true,
+    "read": true,
+    "edit": true,
+    "search": true,
+    "exec": true,
+    "temporaryDirectoryRemoved": true
+  },
+  "localCodex": {
+    "connected": true,
+    "authenticated": true,
+    "authType": "chatgpt"
+  },
+  "automatedChecks": {
+    "passed": 12,
+    "failed": 0,
+    "command": "npm test"
+  },
+  "modelFixtureTest": {
+    "passed": true,
+    "availableDefaultModelUsed": true,
+    "dynamicToolRoundtrip": true,
+    "finalTextReceived": true,
+    "fixtureOnly": true
+  },
+  "limitations": [
+    "Current VS Code window must reload to activate the fixed default-model selection.",
+    "Windows and Linux local clients have not been tested.",
+    "Model fixture roundtrip and real remote helper diagnostics were tested separately."
+  ]
+}
